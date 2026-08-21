@@ -169,6 +169,7 @@ function rahoot_fetch_catalogue() {
         $entry->category = isset($item->category) ? (string)$item->category : '';
         $entry->region = isset($item->region) ? (string)$item->region : '';
         $entry->questions = isset($item->questions) ? (int)$item->questions : 0;
+        $entry->maxattempts = isset($item->maxAttempts) ? (int)$item->maxAttempts : 0;
         $list[] = $entry;
     }
 
@@ -235,6 +236,12 @@ function rahoot_catalogue_options(array $catalogue) {
         }
         if ($entry->questions > 0) {
             $suffix[] = get_string('nquestions', 'mod_rahoot', $entry->questions);
+        }
+        // Surface the attempt limit here, at the moment of choosing. It is set
+        // per quiz in Rahoot, and a teacher who does not know about it only
+        // finds out when a student runs out.
+        if ($entry->maxattempts > 0) {
+            $suffix[] = get_string('nattempts', 'mod_rahoot', $entry->maxattempts);
         }
         if ($suffix) {
             $label .= ' (' . implode(', ', $suffix) . ')';

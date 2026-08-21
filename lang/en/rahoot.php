@@ -52,6 +52,7 @@ $string['quizinvalid'] = 'That does not look like a Rahoot quiz address.';
 $string['catalogueunavailable'] = 'The quiz list could not be read from the Rahoot server, so it is not shown. Paste the address of the quiz instead.';
 $string['nobaseurl'] = 'No Rahoot server has been set for this site yet. An administrator needs to fill it in under Site administration, Plugins, Activity modules, Rahoot.';
 $string['nquestions'] = '{$a} questions';
+$string['nattempts'] = '{$a} tries each';
 
 $string['height'] = 'Fixed height';
 $string['height_help'] = 'Height of the embedded quiz in pixels. Leave at 0 to let it size itself to the browser window, which is what suits most screens.';

@@ -52,6 +52,7 @@ $string['quizinvalid'] = 'Isso não parece um endereço de quiz do Rahoot.';
 $string['catalogueunavailable'] = 'Não foi possível ler a lista de quizzes do servidor Rahoot, por isso ela não aparece. Cole o endereço do quiz.';
 $string['nobaseurl'] = 'Nenhum servidor Rahoot foi definido neste site ainda. Um administrador precisa preencher em Administração do site, Plugins, Módulos de atividades, Rahoot.';
 $string['nquestions'] = '{$a} perguntas';
+$string['nattempts'] = '{$a} tentativas por aluno';
 
 $string['height'] = 'Altura fixa';
 $string['height_help'] = 'Altura do quiz incorporado, em pixels. Deixe 0 para ele se ajustar à janela do navegador, que atende bem à maioria das telas.';
