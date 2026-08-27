@@ -68,3 +68,5 @@ $string['defaultheight'] = 'Altura fixa padrão';
 $string['defaultheight_desc'] = 'Altura em pixels usada pelas atividades que não definem a própria. Deixe 0 para ajustar à janela do navegador, que costuma ser a melhor escolha.';
 
 $string['privacy:metadata'] = 'A atividade Rahoot não armazena nenhum dado pessoal. O quiz roda no servidor Rahoot, que mantém os próprios registros.';
+$string['cataloguerefresh'] = 'Recarregar a lista de quizzes ({$a} na lista)';
+$string['cataloguerefreshed'] = 'Lista de quizzes recarregada do Rahoot.';

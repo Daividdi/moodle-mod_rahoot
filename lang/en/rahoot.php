@@ -68,3 +68,5 @@ $string['defaultheight'] = 'Default fixed height';
 $string['defaultheight_desc'] = 'Height in pixels used by activities that do not set their own. Leave at 0 to size the quiz to the browser window instead, which is usually the better choice.';
 
 $string['privacy:metadata'] = 'The Rahoot activity does not store any personal data. The quiz runs on the Rahoot server, which keeps its own records.';
+$string['cataloguerefresh'] = 'Reload quiz list ({$a} quizzes)';
+$string['cataloguerefreshed'] = 'Quiz list reloaded from Rahoot.';

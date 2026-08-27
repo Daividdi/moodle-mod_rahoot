@@ -33,6 +33,10 @@ defined('MOODLE_INTERNAL') || die();
  */
 define('RAHOOT_QUIZID_REGEX', '/^[A-Za-z0-9._-]+\.json$/');
 
+// Quanto tempo um catalogo lido com sucesso continua valendo. Curto de
+// proposito: e o atraso maximo entre criar um quiz no Rahoot e ve-lo aqui.
+define('RAHOOT_CATALOGUE_FRESH', 30);
+
 /**
  * Returns the configured Rahoot base URL without a trailing slash.
  *
@@ -126,8 +130,19 @@ function rahoot_fetch_catalogue() {
 
     $cache = cache::make('mod_rahoot', 'quizzes');
     $cached = $cache->get('catalogue');
-    if ($cached !== false) {
-        return $cached ?: null;
+    // Duas validades para o mesmo cache.
+    //
+    // O cache existe para que um Rahoot fora do ar nao acrescente tres segundos
+    // a cada carga de formulario — isso continua valendo 300 s, pelo TTL da
+    // definicao. Mas o mesmo prazo aplicado ao SUCESSO fazia um quiz recem
+    // criado demorar ate cinco minutos para aparecer na lista, e quem criava o
+    // quiz e vinha direto ao Moodle concluia que ele so aparece depois de
+    // jogado. O sucesso agora vale RAHOOT_CATALOGUE_FRESH segundos.
+    if (is_array($cached) && array_key_exists('at', $cached)) {
+        $vazio = empty($cached['list']);
+        if ($vazio || (time() - (int)$cached['at']) < RAHOOT_CATALOGUE_FRESH) {
+            return $vazio ? null : $cached['list'];
+        }
     }
 
     // The Rahoot host is chosen by a site administrator and normally resolves
@@ -144,13 +159,13 @@ function rahoot_fetch_catalogue() {
     if ($curl->get_errno() || $httpcode !== 200) {
         // Cache the failure briefly too, so a down Rahoot does not add three
         // seconds to every form load.
-        $cache->set('catalogue', []);
+        $cache->set('catalogue', ['at' => time(), 'list' => []]);
         return null;
     }
 
     $decoded = json_decode($body);
     if (!is_array($decoded)) {
-        $cache->set('catalogue', []);
+        $cache->set('catalogue', ['at' => time(), 'list' => []]);
         return null;
     }
 
@@ -175,7 +190,7 @@ function rahoot_fetch_catalogue() {
 
     core_collator::asort_objects_by_property($list, 'subject', core_collator::SORT_NATURAL);
 
-    $cache->set('catalogue', $list);
+    $cache->set('catalogue', ['at' => time(), 'list' => $list]);
 
     return $list ?: null;
 }

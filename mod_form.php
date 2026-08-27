@@ -46,6 +46,7 @@ class mod_rahoot_mod_form extends moodleform_mod {
      * @return void
      */
     public function definition() {
+        global $COURSE, $PAGE;
         $mform = $this->_form;
 
         $mform->addElement('header', 'general', get_string('general', 'form'));
@@ -73,6 +74,18 @@ class mod_rahoot_mod_form extends moodleform_mod {
             $mform->addElement('select', 'quizid', get_string('quiz', 'mod_rahoot'), $options);
             $mform->setType('quizid', PARAM_RAW);
             $mform->addHelpButton('quizid', 'quiz', 'mod_rahoot');
+            // Um quiz criado agora aparece aqui em ate 30 s. Quem nao quer
+            // esperar nem isso tem o link — e ele diz quantos quizzes a lista
+            // tem, para a pessoa saber se recarregou de fato.
+            $mform->addElement('static', 'cataloguerefresh', '',
+                html_writer::link(
+                    new moodle_url('/mod/rahoot/refresh.php', [
+                        'course'    => $COURSE->id,
+                        'sesskey'   => sesskey(),
+                        'returnurl' => $PAGE->url->out_as_local_url(false),
+                    ]),
+                    get_string('cataloguerefresh', 'mod_rahoot', count($this->catalogue))
+                ));
         } else {
             $mform->addElement('static', 'catalogueunavailable', '',
                 $this->warning(get_string('catalogueunavailable', 'mod_rahoot')));
