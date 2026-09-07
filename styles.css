@@ -73,3 +73,14 @@
         min-height: 440px;
     }
 }
+
+/* The viewer's own standing, shown between the toolbar and the quiz. Reads as
+   a quiet note, not an alert: it is information, and it is there every visit. */
+.mod-rahoot-yourresult {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--primary, #0f6cbf);
+    background: var(--light, #f8f9fa);
+    border-radius: 0 0.25rem 0.25rem 0;
+    font-size: 0.9375rem;
+}

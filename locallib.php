@@ -266,3 +266,171 @@ function rahoot_catalogue_options(array $catalogue) {
 
     return $options;
 }
+
+/**
+ * Reads the solo results of one quiz from Rahoot.
+ *
+ * @param string $quizid Canonical quiz identifier.
+ * @param string $account Optional sAMAccountName, to ask about one person only.
+ * @param int $timeout Seconds; short on purpose when a page is waiting.
+ * @return array|null Decoded `results` list, or null when Rahoot cannot be read.
+ */
+function rahoot_fetch_results($quizid, $account = '', $timeout = 10) {
+    global $CFG;
+    require_once($CFG->libdir . '/filelib.php');
+
+    $base = rahoot_base_url();
+    if ($base === '' || !preg_match(RAHOOT_QUIZID_REGEX, (string)$quizid)) {
+        return null;
+    }
+
+    $params = ['quiz' => $quizid];
+    if ($account !== '') {
+        $params['account'] = $account;
+    }
+
+    $header = [];
+    $token = trim((string)get_config('mod_rahoot', 'resultstoken'));
+    if ($token !== '') {
+        $header[] = 'Authorization: Bearer ' . $token;
+    }
+
+    // Same reasoning as the catalogue fetch: the host is chosen by an
+    // administrator and normally resolves to an internal address, which the
+    // cURL security helper blocks by default.
+    $curl = new \curl(['ignoresecurity' => true]);
+    if ($header) {
+        $curl->setHeader($header);
+    }
+    $body = $curl->get($base . '/api/solo-results', $params, [
+        'CURLOPT_TIMEOUT'        => $timeout,
+        'CURLOPT_CONNECTTIMEOUT' => 3,
+        'CURLOPT_FOLLOWLOCATION' => 0,
+    ]);
+
+    $httpcode = isset($curl->info['http_code']) ? (int)$curl->info['http_code'] : 0;
+    if ($curl->get_errno() || $httpcode !== 200) {
+        return null;
+    }
+
+    $decoded = json_decode($body);
+    if (!is_object($decoded) || !isset($decoded->results) || !is_array($decoded->results)) {
+        return null;
+    }
+
+    return $decoded->results;
+}
+
+/**
+ * Copies Rahoot's results for one activity into this site, and grades them.
+ *
+ * The two systems authenticate against the same directory, so the account
+ * Rahoot recorded and `user.username` here are the same string. That is the
+ * whole match: no name comparison, no fuzzy matching, nothing to get wrong.
+ *
+ * @param stdClass $rahoot Activity instance record.
+ * @param string $account Limit to one person, for the refresh done on view.
+ * @param int $timeout Seconds to wait on Rahoot.
+ * @return array{synced:int,unknown:int,notenrolled:int}|null Null when Rahoot could not be read.
+ */
+function rahoot_sync_results($rahoot, $account = '', $timeout = 10) {
+    global $CFG, $DB;
+    require_once($CFG->dirroot . '/mod/rahoot/lib.php');
+
+    $results = rahoot_fetch_results($rahoot->quizid, $account, $timeout);
+    if ($results === null) {
+        return null;
+    }
+
+    $cm = get_coursemodule_from_instance('rahoot', $rahoot->id, $rahoot->course, false, IGNORE_MISSING);
+    if (!$cm) {
+        return null;
+    }
+    $context = context_module::instance($cm->id);
+
+    $contas = [];
+    foreach ($results as $r) {
+        if (!empty($r->account)) {
+            $contas[] = core_text::strtolower($r->account);
+        }
+    }
+    if (!$contas) {
+        return ['synced' => 0, 'unknown' => 0, 'notenrolled' => 0];
+    }
+
+    [$insql, $inparams] = $DB->get_in_or_equal($contas, SQL_PARAMS_NAMED, 'u');
+    $usuarios = $DB->get_records_select_menu(
+        'user',
+        "LOWER(username) $insql AND deleted = 0",
+        $inparams,
+        '',
+        'username, id'
+    );
+    $porconta = [];
+    foreach ($usuarios as $username => $id) {
+        $porconta[core_text::strtolower($username)] = $id;
+    }
+
+    $agora = time();
+    $sincronizados = 0;
+    $desconhecidos = 0;
+    $naomatriculados = 0;
+
+    foreach ($results as $r) {
+        $conta = core_text::strtolower((string)($r->account ?? ''));
+        if ($conta === '' || empty($r->best) || empty($r->last)) {
+            continue;
+        }
+        if (!isset($porconta[$conta])) {
+            // Played in Rahoot, has no account on this site. Counted rather than
+            // logged per person: it is a roster gap, not an error.
+            $desconhecidos++;
+            continue;
+        }
+        $userid = $porconta[$conta];
+
+        // A grade for someone who cannot open the activity would sit in the
+        // gradebook with no way to explain it.
+        if (!is_enrolled($context, $userid)) {
+            $naomatriculados++;
+            continue;
+        }
+
+        $registro = (object)[
+            'rahootid'     => $rahoot->id,
+            'userid'       => $userid,
+            'account'      => $conta,
+            'attempts'     => (int)$r->attempts,
+            'bestpercent'  => (float)$r->best->percent,
+            'bestcorrect'  => (int)$r->best->correct,
+            'besttotal'    => (int)$r->best->total,
+            'bestpoints'   => (int)$r->best->points,
+            'bestattempt'  => (int)$r->best->attempt,
+            'besttime'     => strtotime($r->best->endedAt) ?: $agora,
+            'lastpercent'  => (float)$r->last->percent,
+            'lastcorrect'  => (int)$r->last->correct,
+            'lasttotal'    => (int)$r->last->total,
+            'lastpoints'   => (int)$r->last->points,
+            'lastattempt'  => (int)$r->last->attempt,
+            'lasttime'     => strtotime($r->last->endedAt) ?: $agora,
+            'timemodified' => $agora,
+        ];
+
+        $existente = $DB->get_record('rahoot_attempts', ['rahootid' => $rahoot->id, 'userid' => $userid]);
+        if ($existente) {
+            $registro->id = $existente->id;
+            $DB->update_record('rahoot_attempts', $registro);
+        } else {
+            $DB->insert_record('rahoot_attempts', $registro);
+        }
+
+        rahoot_update_grades($rahoot, $userid);
+        $sincronizados++;
+    }
+
+    return [
+        'synced'      => $sincronizados,
+        'unknown'     => $desconhecidos,
+        'notenrolled' => $naomatriculados,
+    ];
+}

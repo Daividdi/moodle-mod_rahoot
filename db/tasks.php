@@ -14,9 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * Cache definitions for mod_rahoot.
+ * Scheduled task definitions for mod_rahoot.
  *
  * @package    mod_rahoot
  * @copyright  2026 Angel Aligner
@@ -25,21 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$definitions = [
-    // The quiz catalogue fetched from Rahoot. Short lived on purpose: the form
-    // must not hammer Rahoot on every keystroke, but a newly created quiz
-    // should show up without an admin having to purge caches.
-    'quizzes' => [
-        'mode'       => cache_store::MODE_APPLICATION,
-        'simplekeys' => true,
-        'ttl'        => 300,
-    ],
-    // Remembers that a viewer's own result was just refreshed. Without it,
-    // every reload of the activity page would call Rahoot again, and the page
-    // holds an iframe onto the same host: one visit, one request.
-    'lastsync' => [
-        'mode'       => cache_store::MODE_APPLICATION,
-        'simplekeys' => true,
-        'ttl'        => 60,
+$tasks = [
+    [
+        'classname' => 'mod_rahoot\task\sync_results',
+        'blocking'  => 0,
+        // Every five minutes. A training record does not need to be instant,
+        // and the activity page refreshes the viewer's own result anyway.
+        'minute'    => '*/5',
+        'hour'      => '*',
+        'day'       => '*',
+        'dayofweek' => '*',
+        'month'     => '*',
     ],
 ];

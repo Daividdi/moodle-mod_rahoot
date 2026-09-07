@@ -34,6 +34,16 @@ if ($ADMIN->fulltree) {
         PARAM_URL
     ));
 
+    // Matches SOLO_RESULTS_TOKEN on the Rahoot side. Leave empty only if that
+    // side is also open: the results endpoint carries per-person scores, which
+    // the quiz catalogue does not.
+    $settings->add(new admin_setting_configpasswordunmask(
+        'mod_rahoot/resultstoken',
+        get_string('resultstoken', 'mod_rahoot'),
+        get_string('resultstoken_desc', 'mod_rahoot'),
+        ''
+    ));
+
     $settings->add(new admin_setting_configtext(
         'mod_rahoot/defaultheight',
         get_string('defaultheight', 'mod_rahoot'),

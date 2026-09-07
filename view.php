@@ -56,6 +56,19 @@ $event->trigger();
 $completion = new completion_info($course);
 $completion->set_module_viewed($cm);
 
+// Bring this viewer's own result up to date before drawing the page, so a quiz
+// just finished shows a grade now instead of at the next cron run. Throttled by
+// a short lived cache and given a short timeout: the page must still render if
+// Rahoot is slow, and one visit must mean at most one request.
+if ((int)$rahoot->grade !== 0 && isloggedin() && !isguestuser()) {
+    $throttle = cache::make('mod_rahoot', 'lastsync');
+    $chave = $rahoot->id . '_' . $USER->id;
+    if (!$throttle->get($chave)) {
+        $throttle->set($chave, time());
+        rahoot_sync_results($rahoot, core_text::strtolower($USER->username), 4);
+    }
+}
+
 $PAGE->set_url('/mod/rahoot/view.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($course->shortname) . ': ' . format_string($rahoot->name));
 $PAGE->set_heading(format_string($course->fullname));
@@ -105,6 +118,23 @@ echo html_writer::link($quizurl, get_string('openinnewtab', 'mod_rahoot'), [
     'rel'    => 'noopener noreferrer',
 ]);
 echo html_writer::end_div();
+
+// The person's own standing, in the words the quiz used: correct out of asked,
+// and which attempt it came from. The gradebook shows the converted number;
+// this shows what actually happened.
+$meu = $DB->get_record('rahoot_attempts', ['rahootid' => $rahoot->id, 'userid' => $USER->id]);
+if ($meu && (int)$meu->attempts > 0) {
+    $melhor = ($rahoot->grademethod === 'last') ? 'last' : 'best';
+    $a = (object)[
+        'correct' => (int)$meu->{$melhor . 'correct'},
+        'total'   => (int)$meu->{$melhor . 'total'},
+        'percent' => format_float((float)$meu->{$melhor . 'percent'}, 1, true, true),
+        'attempt' => (int)$meu->{$melhor . 'attempt'},
+        'attempts' => (int)$meu->attempts,
+    ];
+    $chave = ($rahoot->grademethod === 'last') ? 'yourresultlast' : 'yourresultbest';
+    echo html_writer::div(get_string($chave, 'mod_rahoot', $a), 'mod-rahoot-yourresult');
+}
 
 echo html_writer::start_tag('div', $frameattrs);
 // Must be tag(), never empty_tag(): <iframe> is not a void element, and a

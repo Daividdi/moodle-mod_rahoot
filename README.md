@@ -42,11 +42,41 @@ Only the identifier is kept. The activity URL is always rebuilt from the Rahoot
 server configured for the site, so moving Rahoot to another domain is a
 one-setting change rather than an edit of every activity.
 
+## Grades
+
+The activity is graded, so a Rahoot quiz counts towards the course total and can
+carry course completion the same way a Moodle quiz does.
+
+The grade is the **share of questions answered correctly**, not Rahoot's own
+points. Those points are time weighted: two people who got exactly the same
+questions right score differently for having been quicker, which is fair in a
+game and unfair in a training record. The points are still shown to the person,
+they just never become the grade. *Grade from* chooses whose try counts, the
+best or the last.
+
+### How a result finds its person
+
+Both systems authenticate against the same directory, so the account Rahoot
+recorded (`sAMAccountName`) and Moodle's `username` are the same string. That is
+the entire match — no name comparison, nothing to get wrong when two people
+share a first name or somebody is renamed in AD. A player Rahoot has no account
+for is reported in the task log rather than guessed at.
+
+Results are copied into `rahoot_attempts` by a scheduled task every five
+minutes; the activity page also refreshes the viewer's own result, throttled to
+one request a minute. The gradebook reads only that local copy, so recalculating
+grades never depends on Rahoot being reachable.
+
+This needs `GET /api/solo-results?quiz=<id>` on the Rahoot server, returning
+`results` entries with `account`, `attempts`, and a `best` and `last` object
+carrying `correct`, `total`, `percent`, `points`, `attempt` and `endedAt`.
+
 ## Settings
 
 | Setting | Meaning |
 | --- | --- |
 | `baseurl` | Base address of the Rahoot installation, no trailing slash. |
+| `resultstoken` | Shared secret for the results endpoint, matching `SOLO_RESULTS_TOKEN` on the Rahoot server. Empty means the endpoint is open — acceptable for the quiz list, less so for per-person scores. |
 | `defaultheight` | Height in pixels for activities that do not set their own. `0` sizes the quiz to the browser window, which suits most screens. |
 
 ## Requirements

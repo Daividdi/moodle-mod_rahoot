@@ -41,8 +41,12 @@ class restore_rahoot_activity_structure_step extends restore_structure_step {
      */
     protected function define_structure() {
         $paths = [];
+        $userinfo = $this->get_setting_value('userinfo');
 
         $paths[] = new restore_path_element('rahoot', '/activity/rahoot');
+        if ($userinfo) {
+            $paths[] = new restore_path_element('rahoot_attempt', '/activity/rahoot/attempts/attempt');
+        }
 
         return $this->prepare_activity_structure($paths);
     }
@@ -64,6 +68,34 @@ class restore_rahoot_activity_structure_step extends restore_structure_step {
         $newitemid = $DB->insert_record('rahoot', $data);
 
         $this->apply_activity_instance($newitemid);
+    }
+
+    /**
+     * Restores one person's result.
+     *
+     * @param array $data
+     * @return void
+     */
+    protected function process_rahoot_attempt($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $data->rahootid = $this->get_new_parentid('rahoot');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+
+        // A backup can name a user this site does not have. Dropping the row is
+        // right: the alternative is a result attached to whoever happens to
+        // hold that id here.
+        if (empty($data->userid)) {
+            return;
+        }
+
+        $data->besttime = $this->apply_date_offset($data->besttime);
+        $data->lasttime = $this->apply_date_offset($data->lasttime);
+        $data->timemodified = $this->apply_date_offset($data->timemodified);
+
+        unset($data->id);
+        $DB->insert_record('rahoot_attempts', $data);
     }
 
     /**

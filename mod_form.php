@@ -109,6 +109,20 @@ class mod_rahoot_mod_form extends moodleform_mod {
         $mform->setDefault('height', 0);
         $mform->addHelpButton('height', 'height', 'mod_rahoot');
 
+        // Adds the Grade header, the maximum and the pass grade. Everything
+        // below it belongs to that section, which is why the rule that picks
+        // the attempt is added after and not before.
+        $this->standard_grading_coursemodule_elements();
+
+        $mform->addElement('select', 'grademethod', get_string('grademethod', 'mod_rahoot'), [
+            'highest' => get_string('grademethodhighest', 'mod_rahoot'),
+            'last'    => get_string('grademethodlast', 'mod_rahoot'),
+        ]);
+        $mform->setType('grademethod', PARAM_ALPHA);
+        $mform->setDefault('grademethod', 'highest');
+        $mform->addHelpButton('grademethod', 'grademethod', 'mod_rahoot');
+        $mform->hideIf('grademethod', 'grade[modgrade_type]', 'eq', 'none');
+
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
     }
