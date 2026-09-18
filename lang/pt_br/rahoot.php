@@ -35,6 +35,7 @@ $string['pluginadministration'] = 'Administração do Rahoot';
 
 $string['rahoot:addinstance'] = 'Adicionar uma atividade Rahoot';
 $string['rahoot:view'] = 'Ver uma atividade Rahoot';
+$string['rahoot:viewallresults'] = 'Ver todos os resultados do Rahoot';
 
 $string['rahootsettings'] = 'Quiz';
 $string['quiz'] = 'Quiz';
@@ -60,6 +61,25 @@ $string['heighttoosmall'] = 'Use 0 para altura automática, ou pelo menos 200 pi
 
 $string['fullscreen'] = 'Tela cheia';
 $string['openinnewtab'] = 'Abrir em nova aba';
+$string['viewallresults'] = 'Ver resultados do Rahoot';
+$string['resultsreport'] = 'Resultados do Rahoot';
+$string['resultssyncednotice'] = 'Este relatório mostra os resultados sincronizados no Moodle. A tarefa automática roda a cada cinco minutos.';
+$string['userfilter'] = 'Usuário';
+$string['allusers'] = 'Todos os usuários';
+$string['filter'] = 'Filtrar';
+$string['refreshresults'] = 'Atualizar resultados do Rahoot';
+$string['downloadcsv'] = 'Baixar CSV';
+$string['account'] = 'Conta';
+$string['attempts'] = 'Tentativas';
+$string['bestresult'] = 'Melhor resultado';
+$string['besttime'] = 'Melhor conclusão';
+$string['lastresult'] = 'Último resultado';
+$string['lasttime'] = 'Última conclusão';
+$string['resultsfound'] = '{$a} resultado(s)';
+$string['noresults'] = 'Nenhum resultado sincronizado foi encontrado para esta atividade.';
+$string['resultsrefreshed'] = '{$a} resultado(s) atualizado(s) do Rahoot.';
+$string['resultsrefreshfailed'] = 'Não foi possível atualizar os resultados do Rahoot agora. O relatório mostra os últimos dados armazenados no Moodle.';
+$string['backtoactivity'] = 'Voltar para a atividade Rahoot';
 $string['noinstances'] = 'Não há atividades Rahoot neste curso.';
 
 $string['baseurl'] = 'Endereço do servidor Rahoot';

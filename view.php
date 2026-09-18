@@ -117,6 +117,13 @@ echo html_writer::link($quizurl, get_string('openinnewtab', 'mod_rahoot'), [
     'target' => '_blank',
     'rel'    => 'noopener noreferrer',
 ]);
+if (has_capability('mod/rahoot:viewallresults', context_course::instance($course->id))) {
+    echo html_writer::link(
+        new moodle_url('/mod/rahoot/results.php', ['rahootid' => $rahoot->id]),
+        get_string('viewallresults', 'mod_rahoot'),
+        ['class' => 'btn btn-secondary btn-sm']
+    );
+}
 echo html_writer::end_div();
 
 // The person's own standing, in the words the quiz used: correct out of asked,
