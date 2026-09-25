@@ -488,6 +488,12 @@ function rahoot_results_summary($rahootid, $userid = 0, $method = 'best') {
         return null;
     }
 
+    // Ninguém respondeu pergunta nenhuma: um agregado de 0/0 não é 0 %, é "sem
+    // resposta", e dividir aqui seria o NaN silencioso clássico.
+    $pool = ((int)$linha->total > 0)
+        ? ((float)$linha->correct * 100 / (float)$linha->total)
+        : null;
+
     return (object)[
         'method'      => $campo,
         'people'      => (int)$linha->people,
@@ -495,10 +501,13 @@ function rahoot_results_summary($rahootid, $userid = 0, $method = 'best') {
         'meanpercent' => (float)$linha->meanpercent,
         'correct'     => (int)$linha->correct,
         'total'       => (int)$linha->total,
-        // Nobody answered a single question: a pool of 0/0 is not 0 %, it is
-        // "no answer", and dividing here would be the classic silent NaN.
-        'poolpercent' => ((int)$linha->total > 0)
-            ? ((float)$linha->correct * 100 / (float)$linha->total)
-            : null,
+        'poolpercent' => $pool,
+        // Só vale mostrar a segunda média quando ela diz algo diferente da
+        // primeira. Nas turmas reais da Malásia (medido em 25/09/2026) todos
+        // respondem o mesmo número de perguntas, então as duas coincidem e a
+        // linha "isto difere quando..." embaixo de dois números iguais é só
+        // ruído. Compara com 1 casa, que é como as duas são exibidas.
+        'divergent' => ($pool !== null)
+            && (round((float)$linha->meanpercent, 1) !== round($pool, 1)),
     ];
 }

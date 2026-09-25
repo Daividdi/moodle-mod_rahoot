@@ -268,12 +268,15 @@ if (!$records) {
             'total'   => $resumo->total,
         ];
         $chave = ($resumo->method === 'last') ? 'summarylast' : 'summarybest';
-        echo html_writer::div(
-            html_writer::tag('strong', get_string($chave, 'mod_rahoot', $a))
-            . html_writer::empty_tag('br')
-            . html_writer::tag('small', get_string('summarypool', 'mod_rahoot', $a)),
-            'alert alert-secondary mod-rahoot-summary'
-        );
+        $corpo = html_writer::tag('strong', get_string($chave, 'mod_rahoot', $a));
+        // A soma de todas as respostas só aparece quando dá um número
+        // DIFERENTE da média por pessoa. Iguais, seria a mesma informação duas
+        // vezes com uma ressalva que não se aplica.
+        if ($resumo->divergent) {
+            $corpo .= html_writer::empty_tag('br')
+                . html_writer::tag('small', get_string('summarypool', 'mod_rahoot', $a));
+        }
+        echo html_writer::div($corpo, 'alert alert-secondary mod-rahoot-summary');
     }
 
     echo html_writer::tag('p', get_string('resultsfound', 'mod_rahoot', count($records)));
