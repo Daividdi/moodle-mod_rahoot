@@ -105,6 +105,24 @@ if ($download) {
     fclose($handle);
 
     \core\session\manager::write_close();
+    // Uma linha de resumo no fim: o CSV e o que vai para a planilha, e quem
+    // abre lá nao tem a tela do Moodle do lado para ver a media.
+    $resumo = rahoot_results_summary($rahoot->id, $userid, $rahoot->grademethod);
+    if ($resumo !== null) {
+        fputcsv($handle, []);
+        fputcsv($handle, [
+            get_string('csvsummary', 'mod_rahoot'),
+            '',
+            $resumo->tries,
+            sprintf('%d/%d (%s%%)', $resumo->correct, $resumo->total,
+                ($resumo->poolpercent === null)
+                    ? '-' : format_float($resumo->poolpercent, 1, true, true)),
+            '',
+            sprintf('%s%%', format_float($resumo->meanpercent, 1, true, true)),
+            '',
+        ]);
+    }
+
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="rahoot-results-' . $rahoot->id . '.csv"');
     echo "\xEF\xBB\xBF" . $csv;
@@ -230,6 +248,32 @@ if (!$records) {
                 format_float((float)$record->lastpercent, 1, true, true)),
             $record->lasttime ? userdate($record->lasttime) : '-',
         ];
+    }
+
+    // A media da turma, que era o que faltava para o relatorio responder
+    // "como foi" sem somar as linhas a mao. Fica ABAIXO do aviso de
+    // sincronizacao de proposito: quem comparar com o Rahoot e vir diferenca
+    // precisa ler primeiro que o numero vem da copia no Moodle.
+    //
+    // Respeita o filtro de pessoa: com uma pessoa escolhida, a media e dela.
+    $resumo = rahoot_results_summary($rahoot->id, $userid, $rahoot->grademethod);
+    if ($resumo !== null) {
+        $a = (object)[
+            'people' => $resumo->people,
+            'tries'  => $resumo->tries,
+            'mean'   => format_float($resumo->meanpercent, 1, true, true),
+            'pool'   => ($resumo->poolpercent === null)
+                ? '-' : format_float($resumo->poolpercent, 1, true, true),
+            'correct' => $resumo->correct,
+            'total'   => $resumo->total,
+        ];
+        $chave = ($resumo->method === 'last') ? 'summarylast' : 'summarybest';
+        echo html_writer::div(
+            html_writer::tag('strong', get_string($chave, 'mod_rahoot', $a))
+            . html_writer::empty_tag('br')
+            . html_writer::tag('small', get_string('summarypool', 'mod_rahoot', $a)),
+            'alert alert-secondary mod-rahoot-summary'
+        );
     }
 
     echo html_writer::tag('p', get_string('resultsfound', 'mod_rahoot', count($records)));

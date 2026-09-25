@@ -111,3 +111,13 @@ $string['privacy:metadata:rahoot_attempts:lastpercent'] = 'Share of questions an
 $string['privacy:metadata:rahoot_attempts:lasttime'] = 'When their last try finished.';
 $string['privacy:metadata:rahoot'] = 'Results are read from the Rahoot server, which keeps its own records of every quiz played.';
 $string['privacy:metadata:rahoot:account'] = 'The directory account, used to tell whose result is whose. Both systems sign in against the same directory, so nothing about the person is sent out to make the match.';
+
+// The class standing. `mean` weighs every person the same; `pool` is every
+// correct answer over every question asked, which is what you get adding up the
+// rows by hand. They differ when people answered quizzes of different lengths,
+// so both are shown rather than picking one and being quietly wrong.
+$string['summarybest'] = '{$a->people} participant(s) · {$a->tries} attempt(s) · average {$a->mean}% (best attempt of each person)';
+$string['summarylast'] = '{$a->people} participant(s) · {$a->tries} attempt(s) · average {$a->mean}% (latest attempt of each person)';
+$string['summarypool'] = 'Adding up every answer: {$a->correct} correct out of {$a->total} asked ({$a->pool}%). This differs from the average above when people answered quizzes of different lengths.';
+$string['noresultsyet'] = 'Nobody has played this quiz yet.';
+$string['csvsummary'] = 'CLASS AVERAGE';

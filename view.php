@@ -117,14 +117,49 @@ echo html_writer::link($quizurl, get_string('openinnewtab', 'mod_rahoot'), [
     'target' => '_blank',
     'rel'    => 'noopener noreferrer',
 ]);
+echo html_writer::end_div();
+
+// QUEM AVALIA VÊ A NOTA DA TURMA AQUI, sem clicar em nada.
+//
+// Antes havia só um botão pequeno "Ver resultados" numa barra acima de um
+// iframe de 78vh: quem entrava para conferir notas achava a tela do Rahoot e
+// ia procurar o relatório do lado do Rahoot, buscando o quiz pelo nome de novo.
+// Foi o relato de 25/09/2026. O número que a pessoa vinha buscar agora está na
+// primeira tela, e o relatório completo a um clique.
+//
+// NÃO redireciona para o relatório: quem ensina também abre o quiz para ver as
+// perguntas, e um desvio automático brigaria com o "voltar para a atividade" do
+// próprio relatório.
 if (has_capability('mod/rahoot:viewallresults', context_course::instance($course->id))) {
-    echo html_writer::link(
+    $resumo = rahoot_results_summary($rahoot->id, 0, $rahoot->grademethod);
+    $linkrelatorio = html_writer::link(
         new moodle_url('/mod/rahoot/results.php', ['rahootid' => $rahoot->id]),
         get_string('viewallresults', 'mod_rahoot'),
-        ['class' => 'btn btn-secondary btn-sm']
+        ['class' => 'btn btn-primary btn-sm']
     );
+    if ($resumo === null) {
+        echo html_writer::div(
+            get_string('noresultsyet', 'mod_rahoot') . ' ' . $linkrelatorio,
+            'alert alert-secondary mod-rahoot-graderbox'
+        );
+    } else {
+        $a = (object)[
+            'people' => $resumo->people,
+            'tries'  => $resumo->tries,
+            'mean'   => format_float($resumo->meanpercent, 1, true, true),
+            'pool'   => ($resumo->poolpercent === null)
+                ? '-' : format_float($resumo->poolpercent, 1, true, true),
+            'correct' => $resumo->correct,
+            'total'   => $resumo->total,
+        ];
+        $chave = ($resumo->method === 'last') ? 'summarylast' : 'summarybest';
+        echo html_writer::div(
+            html_writer::tag('strong', get_string($chave, 'mod_rahoot', $a))
+            . ' ' . $linkrelatorio,
+            'alert alert-secondary mod-rahoot-graderbox'
+        );
+    }
 }
-echo html_writer::end_div();
 
 // The person's own standing, in the words the quiz used: correct out of asked,
 // and which attempt it came from. The gradebook shows the converted number;

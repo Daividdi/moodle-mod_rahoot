@@ -84,3 +84,20 @@
     border-radius: 0 0.25rem 0.25rem 0;
     font-size: 0.9375rem;
 }
+
+/* O resumo de quem avalia, na atividade e no relatorio. Fica acima do iframe,
+   que e alto: o numero tem de ser legivel antes de qualquer rolagem. */
+.mod-rahoot-graderbox,
+.mod-rahoot-summary {
+    margin: 0.75rem 0;
+}
+
+.mod-rahoot-graderbox .btn {
+    margin-left: 0.5rem;
+}
+
+.mod-rahoot-summary small {
+    display: block;
+    margin-top: 0.35rem;
+    opacity: 0.85;
+}

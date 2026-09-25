@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_rahoot';
-$plugin->version   = 2026091800;
+$plugin->version   = 2026092500;
 $plugin->requires  = 2024100700; // Moodle 4.5. Verified on 4.5 and 5.2.
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.1.0';
+$plugin->release   = '1.2.0';

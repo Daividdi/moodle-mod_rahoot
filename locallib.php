@@ -434,3 +434,71 @@ function rahoot_sync_results($rahoot, $account = '', $timeout = 10) {
         'notenrolled' => $naomatriculados,
     ];
 }
+
+/**
+ * The class standing for one activity: how many people, how many tries, and the
+ * average score.
+ *
+ * Lives here because two pages need the same numbers -- the report and the
+ * activity page a grader lands on -- and an average that disagrees with itself
+ * between two screens is worse than no average at all.
+ *
+ * Two averages come back, and they are NOT the same number:
+ *
+ *  - `meanpercent` is the mean of each person's percentage. Everybody weighs
+ *    the same, whatever quiz length they answered.
+ *  - `poolpercent` is the pool: every correct answer over every question asked.
+ *    Someone who answered more questions pulls it harder.
+ *
+ * They only coincide when everyone answered the same number of questions. A
+ * teacher adding up the rows by eye lands on the pool, so both are reported
+ * rather than picking one and being quietly wrong on the other.
+ *
+ * @param int $rahootid the activity instance
+ * @param int $userid   0 for everyone, or narrow to one person
+ * @param string $method 'best' or 'last' -- which column the average reads
+ * @return object|null null when nobody has played yet
+ */
+function rahoot_results_summary($rahootid, $userid = 0, $method = 'best') {
+    global $DB;
+
+    $campo = ($method === 'last') ? 'last' : 'best';
+    $params = ['rahootid' => $rahootid];
+    $where = 'a.rahootid = :rahootid';
+    if ($userid > 0) {
+        $where .= ' AND a.userid = :userid';
+        $params['userid'] = $userid;
+    }
+
+    // `u.deleted = 0` matches the table above it: a deleted account must not
+    // move the average of a class it is no longer part of.
+    $linha = $DB->get_record_sql(
+        "SELECT COUNT(a.id) AS people,
+                COALESCE(SUM(a.attempts), 0) AS tries,
+                COALESCE(AVG(a.{$campo}percent), 0) AS meanpercent,
+                COALESCE(SUM(a.{$campo}correct), 0) AS correct,
+                COALESCE(SUM(a.{$campo}total), 0) AS total
+           FROM {rahoot_attempts} a
+           JOIN {user} u ON u.id = a.userid
+          WHERE $where AND u.deleted = 0",
+        $params
+    );
+
+    if (!$linha || (int)$linha->people === 0) {
+        return null;
+    }
+
+    return (object)[
+        'method'      => $campo,
+        'people'      => (int)$linha->people,
+        'tries'       => (int)$linha->tries,
+        'meanpercent' => (float)$linha->meanpercent,
+        'correct'     => (int)$linha->correct,
+        'total'       => (int)$linha->total,
+        // Nobody answered a single question: a pool of 0/0 is not 0 %, it is
+        // "no answer", and dividing here would be the classic silent NaN.
+        'poolpercent' => ((int)$linha->total > 0)
+            ? ((float)$linha->correct * 100 / (float)$linha->total)
+            : null,
+    ];
+}

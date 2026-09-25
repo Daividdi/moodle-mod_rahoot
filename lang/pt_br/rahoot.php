@@ -111,3 +111,13 @@ $string['privacy:metadata:rahoot_attempts:lastpercent'] = 'Proporção de acerto
 $string['privacy:metadata:rahoot_attempts:lasttime'] = 'Quando a última tentativa terminou.';
 $string['privacy:metadata:rahoot'] = 'Os resultados são lidos do servidor Rahoot, que mantém os próprios registros de cada quiz jogado.';
 $string['privacy:metadata:rahoot:account'] = 'A conta de rede, usada para saber de quem é cada resultado. Os dois sistemas autenticam no mesmo diretório, então nada sobre a pessoa é enviado para fazer essa ligação.';
+
+// O desempenho da turma. `mean` dá o mesmo peso a cada pessoa; `pool` é todo
+// acerto sobre toda pergunta feita, que é o que dá somando as linhas na mão.
+// Os dois divergem quando as pessoas responderam quizzes de tamanhos
+// diferentes, então aparecem os dois em vez de escolher um e errar em silêncio.
+$string['summarybest'] = '{$a->people} participante(s) · {$a->tries} tentativa(s) · média {$a->mean}% (melhor tentativa de cada um)';
+$string['summarylast'] = '{$a->people} participante(s) · {$a->tries} tentativa(s) · média {$a->mean}% (última tentativa de cada um)';
+$string['summarypool'] = 'Somando todas as respostas: {$a->correct} acertos em {$a->total} perguntas ({$a->pool}%). Difere da média acima quando as pessoas responderam quizzes de tamanhos diferentes.';
+$string['noresultsyet'] = 'Ninguém jogou este quiz ainda.';
+$string['csvsummary'] = 'MÉDIA DA TURMA';
