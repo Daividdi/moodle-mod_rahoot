@@ -143,21 +143,12 @@ if (has_capability('mod/rahoot:viewallresults', context_course::instance($course
             'alert alert-secondary mod-rahoot-graderbox'
         );
     } else {
-        $a = (object)[
-            'people' => $resumo->people,
-            'tries'  => $resumo->tries,
-            'mean'   => format_float($resumo->meanpercent, 1, true, true),
-            'pool'   => ($resumo->poolpercent === null)
-                ? '-' : format_float($resumo->poolpercent, 1, true, true),
-            'correct' => $resumo->correct,
-            'total'   => $resumo->total,
-        ];
-        $chave = ($resumo->method === 'last') ? 'summarylast' : 'summarybest';
-        echo html_writer::div(
-            html_writer::tag('strong', get_string($chave, 'mod_rahoot', $a))
-            . ' ' . $linkrelatorio,
-            'alert alert-secondary mod-rahoot-graderbox'
-        );
+        [$titulo, $extra] = rahoot_summary_lines($resumo);
+        $corpo = html_writer::tag('strong', $titulo) . ' ' . $linkrelatorio;
+        if ($extra !== null) {
+            $corpo .= html_writer::empty_tag('br') . html_writer::tag('small', $extra);
+        }
+        echo html_writer::div($corpo, 'alert alert-secondary mod-rahoot-graderbox');
     }
 }
 
@@ -166,16 +157,20 @@ if (has_capability('mod/rahoot:viewallresults', context_course::instance($course
 // this shows what actually happened.
 $meu = $DB->get_record('rahoot_attempts', ['rahootid' => $rahoot->id, 'userid' => $USER->id]);
 if ($meu && (int)$meu->attempts > 0) {
-    $melhor = ($rahoot->grademethod === 'last') ? 'last' : 'best';
+    $melhor = rahoot_method_prefix($rahoot->grademethod);
+    // Synced before Rahoot sent averages: show the best try rather than nothing.
+    if ($melhor === 'avg' && $meu->avgpercent === null) {
+        $melhor = 'best';
+    }
     $a = (object)[
-        'correct' => (int)$meu->{$melhor . 'correct'},
-        'total'   => (int)$meu->{$melhor . 'total'},
+        'correct' => format_float((float)$meu->{$melhor . 'correct'}, 1, true, true),
+        'total'   => format_float((float)$meu->{$melhor . 'total'}, 1, true, true),
         'percent' => format_float((float)$meu->{$melhor . 'percent'}, 1, true, true),
-        'attempt' => (int)$meu->{$melhor . 'attempt'},
+        'attempt' => ($melhor === 'avg') ? 0 : (int)$meu->{$melhor . 'attempt'},
         'attempts' => (int)$meu->attempts,
     ];
-    $chave = ($rahoot->grademethod === 'last') ? 'yourresultlast' : 'yourresultbest';
-    echo html_writer::div(get_string($chave, 'mod_rahoot', $a), 'mod-rahoot-yourresult');
+    $chaves = ['best' => 'yourresultbest', 'last' => 'yourresultlast', 'avg' => 'yourresultaverage'];
+    echo html_writer::div(get_string($chaves[$melhor], 'mod_rahoot', $a), 'mod-rahoot-yourresult');
 }
 
 echo html_writer::start_tag('div', $frameattrs);

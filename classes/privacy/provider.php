@@ -63,6 +63,7 @@ class provider implements
             'besttime'    => 'privacy:metadata:rahoot_attempts:besttime',
             'lastpercent' => 'privacy:metadata:rahoot_attempts:lastpercent',
             'lasttime'    => 'privacy:metadata:rahoot_attempts:lasttime',
+            'avgpercent'  => 'privacy:metadata:rahoot_attempts:avgpercent',
         ], 'privacy:metadata:rahoot_attempts');
 
         // The identity is not sent anywhere: this site reads results that
@@ -166,6 +167,11 @@ class provider implements
             $dados->lastresult = $registro->lastcorrect . '/' . $registro->lasttotal
                 . ' (' . format_float($registro->lastpercent, 2) . '%)';
             $dados->lasttime = transform::datetime($registro->lasttime);
+            if ($registro->avgpercent !== null) {
+                $dados->averageresult = format_float((float)$registro->avgcorrect, 2) . '/'
+                    . format_float((float)$registro->avgtotal, 2)
+                    . ' (' . format_float((float)$registro->avgpercent, 2) . '%)';
+            }
 
             writer::with_context($context)->export_data([], $dados);
             helper::export_context_files($context, $user);

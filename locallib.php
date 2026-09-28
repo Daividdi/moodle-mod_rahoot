@@ -413,6 +413,11 @@ function rahoot_sync_results($rahoot, $account = '', $timeout = 10) {
             'lastpoints'   => (int)$r->last->points,
             'lastattempt'  => (int)$r->last->attempt,
             'lasttime'     => strtotime($r->last->endedAt) ?: $agora,
+            // Sent by Rahoot 1.52 and later. Kept null when absent, so an older
+            // Rahoot shows "-" instead of an average of zero.
+            'avgpercent'   => isset($r->average->percent) ? (float)$r->average->percent : null,
+            'avgcorrect'   => isset($r->average->correct) ? (float)$r->average->correct : null,
+            'avgtotal'     => isset($r->average->total) ? (float)$r->average->total : null,
             'timemodified' => $agora,
         ];
 
@@ -436,33 +441,62 @@ function rahoot_sync_results($rahoot, $account = '', $timeout = 10) {
 }
 
 /**
+ * Maps an activity's grade method onto the stored column prefix.
+ *
+ * @param string $method 'highest', 'last' or 'average' (the activity setting)
+ * @return string 'best', 'last' or 'avg'
+ */
+function rahoot_method_prefix($method) {
+    if ($method === 'last') {
+        return 'last';
+    }
+    if ($method === 'average') {
+        return 'avg';
+    }
+    return 'best';
+}
+
+/**
+ * Formats one stored result as "correct/total (percent%)", or "-" when unknown.
+ *
+ * @param float|int|null $correct
+ * @param float|int|null $total
+ * @param float|null $percent
+ * @return string
+ */
+function rahoot_format_result($correct, $total, $percent) {
+    if ($percent === null || $total === null || $correct === null) {
+        return '-';
+    }
+    return sprintf('%s/%s (%s%%)',
+        format_float((float)$correct, 1, true, true),
+        format_float((float)$total, 1, true, true),
+        format_float((float)$percent, 1, true, true));
+}
+
+/**
  * The class standing for one activity: how many people, how many tries, and the
- * average score.
+ * averages.
  *
  * Lives here because two pages need the same numbers -- the report and the
  * activity page a grader lands on -- and an average that disagrees with itself
  * between two screens is worse than no average at all.
  *
- * Two averages come back, and they are NOT the same number:
- *
- *  - `meanpercent` is the mean of each person's percentage. Everybody weighs
- *    the same, whatever quiz length they answered.
- *  - `poolpercent` is the pool: every correct answer over every question asked.
- *    Someone who answered more questions pulls it harder.
- *
- * They only coincide when everyone answered the same number of questions. A
- * teacher adding up the rows by eye lands on the pool, so both are reported
- * rather than picking one and being quietly wrong on the other.
+ * `meanpercent` follows the activity's grade method (best, last or average try
+ * of each person); `bestmean`, `lastmean` and `avgmean` are all three, so the
+ * report and the CSV can show every column's class average. `poolpercent` is
+ * every correct answer over every question asked in the tries the method reads,
+ * which differs from the mean when people answered quizzes of different lengths.
  *
  * @param int $rahootid the activity instance
  * @param int $userid   0 for everyone, or narrow to one person
- * @param string $method 'best' or 'last' -- which column the average reads
+ * @param string $method 'highest', 'last' or 'average'
  * @return object|null null when nobody has played yet
  */
-function rahoot_results_summary($rahootid, $userid = 0, $method = 'best') {
+function rahoot_results_summary($rahootid, $userid = 0, $method = 'highest') {
     global $DB;
 
-    $campo = ($method === 'last') ? 'last' : 'best';
+    $campo = rahoot_method_prefix($method);
     $params = ['rahootid' => $rahootid];
     $where = 'a.rahootid = :rahootid';
     if ($userid > 0) {
@@ -471,11 +505,14 @@ function rahoot_results_summary($rahootid, $userid = 0, $method = 'best') {
     }
 
     // `u.deleted = 0` matches the table above it: a deleted account must not
-    // move the average of a class it is no longer part of.
+    // move the average of a class it is no longer part of. AVG() skips nulls, so
+    // people synced before Rahoot sent an average do not drag it to zero.
     $linha = $DB->get_record_sql(
         "SELECT COUNT(a.id) AS people,
                 COALESCE(SUM(a.attempts), 0) AS tries,
-                COALESCE(AVG(a.{$campo}percent), 0) AS meanpercent,
+                AVG(a.bestpercent) AS bestmean,
+                AVG(a.lastpercent) AS lastmean,
+                AVG(a.avgpercent) AS avgmean,
                 COALESCE(SUM(a.{$campo}correct), 0) AS correct,
                 COALESCE(SUM(a.{$campo}total), 0) AS total
            FROM {rahoot_attempts} a
@@ -488,26 +525,70 @@ function rahoot_results_summary($rahootid, $userid = 0, $method = 'best') {
         return null;
     }
 
-    // Ninguém respondeu pergunta nenhuma: um agregado de 0/0 não é 0 %, é "sem
-    // resposta", e dividir aqui seria o NaN silencioso clássico.
-    $pool = ((int)$linha->total > 0)
+    $media = function($v) {
+        return ($v === null) ? null : (float)$v;
+    };
+    $means = [
+        'best' => $media($linha->bestmean),
+        'last' => $media($linha->lastmean),
+        'avg'  => $media($linha->avgmean),
+    ];
+
+    // Nobody answered anything: 0 of 0 is "no answer", not 0%, and dividing here
+    // would be the classic silent NaN.
+    $pool = ((float)$linha->total > 0)
         ? ((float)$linha->correct * 100 / (float)$linha->total)
         : null;
+    $mean = $means[$campo];
 
     return (object)[
         'method'      => $campo,
         'people'      => (int)$linha->people,
         'tries'       => (int)$linha->tries,
-        'meanpercent' => (float)$linha->meanpercent,
-        'correct'     => (int)$linha->correct,
-        'total'       => (int)$linha->total,
+        'meanpercent' => $mean,
+        'bestmean'    => $means['best'],
+        'lastmean'    => $means['last'],
+        'avgmean'     => $means['avg'],
+        'correct'     => (float)$linha->correct,
+        'total'       => (float)$linha->total,
         'poolpercent' => $pool,
-        // Só vale mostrar a segunda média quando ela diz algo diferente da
-        // primeira. Nas turmas reais da Malásia (medido em 25/09/2026) todos
-        // respondem o mesmo número de perguntas, então as duas coincidem e a
-        // linha "isto difere quando..." embaixo de dois números iguais é só
-        // ruído. Compara com 1 casa, que é como as duas são exibidas.
-        'divergent' => ($pool !== null)
-            && (round((float)$linha->meanpercent, 1) !== round($pool, 1)),
+        // The pooled figure is only worth a second line when it says something
+        // different from the mean. Compared at one decimal, as both are shown.
+        'divergent' => ($pool !== null) && ($mean !== null)
+            && (round($mean, 1) !== round($pool, 1)),
     ];
+}
+
+/**
+ * The strings for the summary line, shared by the report and the activity page.
+ *
+ * @param object $resumo from rahoot_results_summary()
+ * @return array{0:string,1:?string} the headline and, when useful, a second line
+ */
+function rahoot_summary_lines($resumo) {
+    $fmt = function($v) {
+        return ($v === null) ? '-' : format_float($v, 1, true, true);
+    };
+    $a = (object)[
+        'people'  => $resumo->people,
+        'tries'   => $resumo->tries,
+        'mean'    => $fmt($resumo->meanpercent),
+        'avgmean' => $fmt($resumo->avgmean),
+        'pool'    => $fmt($resumo->poolpercent),
+        'correct' => format_float($resumo->correct, 1, true, true),
+        'total'   => format_float($resumo->total, 1, true, true),
+    ];
+    $chaves = ['best' => 'summarybest', 'last' => 'summarylast', 'avg' => 'summaryaverage'];
+    $titulo = get_string($chaves[$resumo->method], 'mod_rahoot', $a);
+
+    $extras = [];
+    // The average of every try is what the report is asked about most, so it is
+    // spelled out even when the grade comes from the best or the last try.
+    if ($resumo->method !== 'avg' && $resumo->avgmean !== null) {
+        $extras[] = get_string('summaryalltries', 'mod_rahoot', $a);
+    }
+    if ($resumo->divergent) {
+        $extras[] = get_string('summarypool', 'mod_rahoot', $a);
+    }
+    return [$titulo, $extras ? implode(' ', $extras) : null];
 }

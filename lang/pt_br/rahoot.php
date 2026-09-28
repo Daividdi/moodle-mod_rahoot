@@ -91,7 +91,7 @@ $string['cataloguerefresh'] = 'Recarregar a lista de quizzes ({$a} na lista)';
 $string['cataloguerefreshed'] = 'Lista de quizzes recarregada do Rahoot.';
 
 $string['grademethod'] = 'Nota vem de';
-$string['grademethod_help'] = 'Qual das tentativas jogadas vira a nota. A nota é a proporção de acertos; os pontos do próprio Rahoot não são usados, porque premiam a velocidade além do conhecimento.';
+$string['grademethod_help'] = 'Qual das tentativas jogadas vira a nota: a melhor, a última ou a média de todas. A nota é a proporção de acertos; os pontos do próprio Rahoot não são usados, porque premiam a velocidade além do conhecimento.';
 $string['grademethodhighest'] = 'A melhor tentativa';
 $string['grademethodlast'] = 'A última tentativa';
 $string['yourresultbest'] = 'Sua melhor tentativa: {$a->correct} de {$a->total} certas ({$a->percent}%), na tentativa {$a->attempt}. Você jogou {$a->attempts} vez(es).';
@@ -121,3 +121,11 @@ $string['summarylast'] = '{$a->people} participante(s) · {$a->tries} tentativa(
 $string['summarypool'] = 'Somando todas as respostas: {$a->correct} acertos em {$a->total} perguntas ({$a->pool}%). Difere da média acima quando as pessoas responderam quizzes de tamanhos diferentes.';
 $string['noresultsyet'] = 'Ninguém jogou este quiz ainda.';
 $string['csvsummary'] = 'MÉDIA DA TURMA';
+
+// Média das tentativas de cada pessoa (1.3.0).
+$string['averageresult'] = 'Resultado médio';
+$string['grademethodaverage'] = 'A média das tentativas';
+$string['yourresultaverage'] = 'Sua média em {$a->attempts} tentativa(s): {$a->correct} de {$a->total} certas ({$a->percent}%).';
+$string['summaryaverage'] = '{$a->people} participante(s) · {$a->tries} tentativa(s) · média {$a->mean}% (média das tentativas de cada um)';
+$string['summaryalltries'] = 'Média de todas as tentativas de cada um: {$a->avgmean}%.';
+$string['privacy:metadata:rahoot_attempts:avgpercent'] = 'Proporção média de acertos entre as tentativas.';

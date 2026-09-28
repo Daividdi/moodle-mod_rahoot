@@ -52,6 +52,7 @@ class backup_rahoot_activity_structure_step extends backup_activity_structure_st
             'userid', 'account', 'attempts',
             'bestpercent', 'bestcorrect', 'besttotal', 'bestpoints', 'bestattempt', 'besttime',
             'lastpercent', 'lastcorrect', 'lasttotal', 'lastpoints', 'lastattempt', 'lasttime',
+            'avgpercent', 'avgcorrect', 'avgtotal',
             'timemodified',
         ]);
 

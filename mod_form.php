@@ -117,6 +117,7 @@ class mod_rahoot_mod_form extends moodleform_mod {
         $mform->addElement('select', 'grademethod', get_string('grademethod', 'mod_rahoot'), [
             'highest' => get_string('grademethodhighest', 'mod_rahoot'),
             'last'    => get_string('grademethodlast', 'mod_rahoot'),
+            'average' => get_string('grademethodaverage', 'mod_rahoot'),
         ]);
         $mform->setType('grademethod', PARAM_ALPHA);
         $mform->setDefault('grademethod', 'highest');

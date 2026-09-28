@@ -91,7 +91,7 @@ $string['cataloguerefresh'] = 'Reload quiz list ({$a} quizzes)';
 $string['cataloguerefreshed'] = 'Quiz list reloaded from Rahoot.';
 
 $string['grademethod'] = 'Grade from';
-$string['grademethod_help'] = 'Which of the tries a person played becomes their grade. The grade is the share of questions answered correctly; Rahoot\'s own points are not used, because they reward speed as well as knowledge.';
+$string['grademethod_help'] = 'Which of the tries a person played becomes their grade: the best, the last, or the average of all of them. The grade is the share of questions answered correctly; Rahoot\'s own points are not used, because they reward speed as well as knowledge.';
 $string['grademethodhighest'] = 'Their best try';
 $string['grademethodlast'] = 'Their last try';
 $string['yourresultbest'] = 'Your best try: {$a->correct} of {$a->total} right ({$a->percent}%), on try {$a->attempt}. You have played {$a->attempts} time(s).';
@@ -121,3 +121,11 @@ $string['summarylast'] = '{$a->people} participant(s) · {$a->tries} attempt(s) 
 $string['summarypool'] = 'Adding up every answer: {$a->correct} correct out of {$a->total} asked ({$a->pool}%). This differs from the average above when people answered quizzes of different lengths.';
 $string['noresultsyet'] = 'Nobody has played this quiz yet.';
 $string['csvsummary'] = 'CLASS AVERAGE';
+
+// Average of each person's tries (1.3.0).
+$string['averageresult'] = 'Average result';
+$string['grademethodaverage'] = 'The average of their tries';
+$string['yourresultaverage'] = 'Your average over {$a->attempts} try(ies): {$a->correct} of {$a->total} right ({$a->percent}%).';
+$string['summaryaverage'] = '{$a->people} participant(s) · {$a->tries} attempt(s) · average {$a->mean}% (average of each person\'s tries)';
+$string['summaryalltries'] = 'Average of every person\'s tries: {$a->avgmean}%.';
+$string['privacy:metadata:rahoot_attempts:avgpercent'] = 'Average share of questions answered correctly across their tries.';

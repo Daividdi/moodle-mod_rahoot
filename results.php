@@ -82,6 +82,7 @@ if ($download) {
         get_string('user'),
         get_string('account', 'mod_rahoot'),
         get_string('attempts', 'mod_rahoot'),
+        get_string('averageresult', 'mod_rahoot'),
         get_string('bestresult', 'mod_rahoot'),
         get_string('besttime', 'mod_rahoot'),
         get_string('lastresult', 'mod_rahoot'),
@@ -92,37 +93,42 @@ if ($download) {
             fullname($record),
             $record->account,
             (int)$record->attempts,
-            sprintf('%d/%d (%s%%)', $record->bestcorrect, $record->besttotal,
-                format_float((float)$record->bestpercent, 1, true, true)),
+            rahoot_format_result($record->avgcorrect, $record->avgtotal, $record->avgpercent),
+            rahoot_format_result($record->bestcorrect, $record->besttotal, $record->bestpercent),
             $record->besttime ? userdate($record->besttime) : '',
-            sprintf('%d/%d (%s%%)', $record->lastcorrect, $record->lasttotal,
-                format_float((float)$record->lastpercent, 1, true, true)),
+            rahoot_format_result($record->lastcorrect, $record->lasttotal, $record->lastpercent),
             $record->lasttime ? userdate($record->lasttime) : '',
         ]);
     }
-    rewind($handle);
-    $csv = stream_get_contents($handle);
-    fclose($handle);
 
-    \core\session\manager::write_close();
-    // Uma linha de resumo no fim: o CSV e o que vai para a planilha, e quem
-    // abre lá nao tem a tela do Moodle do lado para ver a media.
+    // A summary row at the end: the CSV is what goes into a spreadsheet, and
+    // whoever opens it there has no Moodle screen beside it to read the average.
+    // Each column carries the class average of that same column. It must be
+    // written BEFORE the stream is rewound and closed -- writing to a closed
+    // handle is what made the download fail with "not a valid stream resource".
     $resumo = rahoot_results_summary($rahoot->id, $userid, $rahoot->grademethod);
     if ($resumo !== null) {
+        $pct = function($v) {
+            return ($v === null) ? '-' : format_float($v, 1, true, true) . '%';
+        };
         fputcsv($handle, []);
         fputcsv($handle, [
             get_string('csvsummary', 'mod_rahoot'),
             '',
             $resumo->tries,
-            sprintf('%d/%d (%s%%)', $resumo->correct, $resumo->total,
-                ($resumo->poolpercent === null)
-                    ? '-' : format_float($resumo->poolpercent, 1, true, true)),
+            $pct($resumo->avgmean),
+            $pct($resumo->bestmean),
             '',
-            sprintf('%s%%', format_float($resumo->meanpercent, 1, true, true)),
+            $pct($resumo->lastmean),
             '',
         ]);
     }
 
+    rewind($handle);
+    $csv = stream_get_contents($handle);
+    fclose($handle);
+
+    \core\session\manager::write_close();
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="rahoot-results-' . $rahoot->id . '.csv"');
     echo "\xEF\xBB\xBF" . $csv;
@@ -230,6 +236,7 @@ if (!$records) {
         get_string('user'),
         get_string('account', 'mod_rahoot'),
         get_string('attempts', 'mod_rahoot'),
+        get_string('averageresult', 'mod_rahoot'),
         get_string('bestresult', 'mod_rahoot'),
         get_string('besttime', 'mod_rahoot'),
         get_string('lastresult', 'mod_rahoot'),
@@ -241,11 +248,10 @@ if (!$records) {
             fullname($record),
             s($record->account),
             (int)$record->attempts,
-            sprintf('%d/%d (%s%%)', $record->bestcorrect, $record->besttotal,
-                format_float((float)$record->bestpercent, 1, true, true)),
+            rahoot_format_result($record->avgcorrect, $record->avgtotal, $record->avgpercent),
+            rahoot_format_result($record->bestcorrect, $record->besttotal, $record->bestpercent),
             $record->besttime ? userdate($record->besttime) : '-',
-            sprintf('%d/%d (%s%%)', $record->lastcorrect, $record->lasttotal,
-                format_float((float)$record->lastpercent, 1, true, true)),
+            rahoot_format_result($record->lastcorrect, $record->lasttotal, $record->lastpercent),
             $record->lasttime ? userdate($record->lasttime) : '-',
         ];
     }
@@ -258,23 +264,10 @@ if (!$records) {
     // Respeita o filtro de pessoa: com uma pessoa escolhida, a media e dela.
     $resumo = rahoot_results_summary($rahoot->id, $userid, $rahoot->grademethod);
     if ($resumo !== null) {
-        $a = (object)[
-            'people' => $resumo->people,
-            'tries'  => $resumo->tries,
-            'mean'   => format_float($resumo->meanpercent, 1, true, true),
-            'pool'   => ($resumo->poolpercent === null)
-                ? '-' : format_float($resumo->poolpercent, 1, true, true),
-            'correct' => $resumo->correct,
-            'total'   => $resumo->total,
-        ];
-        $chave = ($resumo->method === 'last') ? 'summarylast' : 'summarybest';
-        $corpo = html_writer::tag('strong', get_string($chave, 'mod_rahoot', $a));
-        // A soma de todas as respostas só aparece quando dá um número
-        // DIFERENTE da média por pessoa. Iguais, seria a mesma informação duas
-        // vezes com uma ressalva que não se aplica.
-        if ($resumo->divergent) {
-            $corpo .= html_writer::empty_tag('br')
-                . html_writer::tag('small', get_string('summarypool', 'mod_rahoot', $a));
+        [$titulo, $extra] = rahoot_summary_lines($resumo);
+        $corpo = html_writer::tag('strong', $titulo);
+        if ($extra !== null) {
+            $corpo .= html_writer::empty_tag('br') . html_writer::tag('small', $extra);
         }
         echo html_writer::div($corpo, 'alert alert-secondary mod-rahoot-summary');
     }

@@ -228,12 +228,16 @@ function rahoot_get_user_grades($rahoot, $userid = 0) {
         $params['userid'] = $userid;
     }
 
-    $campo = ($rahoot->grademethod === 'last') ? 'lastpercent' : 'bestpercent';
-    $tempo = ($rahoot->grademethod === 'last') ? 'lasttime' : 'besttime';
+    require_once(__DIR__ . '/locallib.php');
+    $prefixo = rahoot_method_prefix($rahoot->grademethod);
+    $campo = $prefixo . 'percent';
+    // The average has no single finishing time; the last try is when it was
+    // last changed.
+    $tempo = ($prefixo === 'best') ? 'besttime' : 'lasttime';
 
     $grades = [];
     foreach ($DB->get_records('rahoot_attempts', $params) as $row) {
-        if ((int)$row->attempts < 1) {
+        if ((int)$row->attempts < 1 || $row->{$campo} === null) {
             continue;
         }
         $raw = rahoot_percent_to_grade($rahoot, (float)$row->{$campo});
